@@ -1,0 +1,7 @@
+print('EML 4806 Modeling Of Robots')
+print('Florida International University')
+print('Instructor Anthony Abrahao')
+print('Miami, FL')
+print(' ')
+print('Let\'s take over the world...')
+print(' ')
