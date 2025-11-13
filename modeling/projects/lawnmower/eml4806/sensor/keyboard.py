@@ -26,7 +26,7 @@ def _on_close(event):
     _key = 'q'
     _fig = None
 
-def read_key():
+def key():
     global _key, _fig
     if _fig is None:
         fig = _get_current_figure()    

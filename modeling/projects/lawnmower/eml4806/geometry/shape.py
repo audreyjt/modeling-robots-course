@@ -9,3 +9,11 @@ def box(x, y, w, h):
         [x + w, y + h],  # top-right
         [x - w, y + h],  # top-left
     ], dtype=float)
+
+def circle(xc, yc, r):
+    t = np.linspace(0.0, 2.0*np.pi, 72)
+    x = xc + r*np.cos(t)
+    y = yc + r*np.sin(t)
+    return np.column_stack((x, y))
+
+    
