@@ -1,5 +1,13 @@
 import numpy as np
 
+def apply(vector, transform):
+    print(vector)
+    v = to_homogeneous(vector)
+    print(v)
+    v = (transform @ v.T).T
+    print(v)
+    return from_homogeneous(v)
+
 def to_homogeneous(vector):
     arr = np.asarray(vector, dtype=float)
     # Single vector
