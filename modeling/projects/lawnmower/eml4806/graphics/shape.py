@@ -1,39 +1,65 @@
+import math
 import numpy as np
+from abc import ABC, abstractmethod
 import matplotlib.pyplot as plt
 
-from eml4806.geometry.transform import identity
-from eml4806.geometry.transform import apply
+from eml4806.graphics.style import Style
+from eml4806.geometry.transform import Transform
 
-g_transparency = 0.2
+###############################################################
 
-class Shape:
-    def __init__(self, axis, shape, color):
-        self.color = (color[0], color[1], color[2], g_transparency)
-        self.shape = shape
-        self.fill = axis.fill(shape[:,0], shape[:,1], self.color)[0]
-        
-    def update(self, transform = identity()):
+
+class Shape(ABC):
+
+    def __init__(self, ax, style=Style.default(), transform=Transform.identity()):
+        self.ax = ax
+        self.style = style
+        self._transform = transform
+
+    @property
+    def transform(self):
+        return self._transform
+
+    @transform.setter
+    def transform(self, value):
+        self._transform = value    
+        self._update()
+
+    @abstractmethod
+    def _update(self):
         pass
-        #shape = apply(self.shape, transform)
-        #self.fill.set_data(shape[:,0], shape[:,1])
-
-#######################################################
-# Shape generation
-
-def box(x, y, w, h):
-    w = 0.5*w
-    h = 0.5*h
-    return np.array([
-        [x - w, y - h],  # bottom-left
-        [x + w, y - h],  # bottom-right
-        [x + w, y + h],  # top-right
-        [x - w, y + h],  # top-left
-    ], dtype=float)
-
-def circle(xc, yc, r):
-    a = np.linspace(0.0, 2.0*np.pi, 72)
-    x = xc + r*np.cos(a)
-    y = yc + r*np.sin(a)
-    return np.column_stack((x, y))
 
     
+
+###############################################################
+
+class Rectangle(Shape):
+
+    def __init__(self, ax, width, height, style=Style.default(), transform=Transform.identity()):
+        super().__init__(ax, style, transform)
+        self.w = width
+        self.h = height
+        self._make()
+
+    def shape(self):
+        w = 0.5*self.w
+        h = 0.5*self.h
+        return np.array([
+            [-w, -h],
+            [ w, -h],
+            [ w,  h],
+            [-w,  h]
+        ])
+
+    def _make(self):
+        o = self.shape()
+        o = self._transform.apply(o)
+        self.fill = plt.fill(o[:,0],o[:,1])[0]
+        print(self.fill)
+
+    def _update(self):
+        print("Rectangle updated!")
+        o = self.shape()
+        o = self._transform.apply(o)
+        self.fill.set_xy(o)
+

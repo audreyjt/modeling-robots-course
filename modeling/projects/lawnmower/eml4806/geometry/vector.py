@@ -1,7 +1,10 @@
 import numpy as np
 
+def vector(x, y):
+    return np.array([0.0, 0.0], dtype=float)
+
 def null():
-    return np.array([0.0, 0.0])
+    return np.array([0.0, 0.0], dtype=float)
 
 def length(v1):
     v = np.asarray(v1)
@@ -21,6 +24,6 @@ def unit(v1):
 def perpendicular(v, clockwise=False, normalize=False):
     u = np.asarray(v)
     if clockwise:
-        return np.array([v[1], -v[0]])
+        return vector(v[1], -v[0])
     else:
-        np.array([-v[1], v[0]])
+        vector(-v[1], v[0])

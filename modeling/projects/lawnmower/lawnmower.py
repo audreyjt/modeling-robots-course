@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import eml4806.geometry.angle as angle
-import eml4806.graphics.world as world
+import eml4806.graphics.workspace as workspace
 import eml4806.sensor.keyboard as keyboard
 import eml4806.robot.skidsteer as skidsteer
 
@@ -17,7 +17,7 @@ def main():
     ymin = -1.0
     ymax = 10.0
     
-    workspace = world.Workspace(xmin, xmax, ymin, ymax)
+    workspace = workspace.Workspace(xmin, xmax, ymin, ymax)
 
     # Robot
     # ClearPath Husky A200 Ground Platform

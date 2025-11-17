@@ -1,88 +1,118 @@
 import numpy as np
 
-def apply(vector, transform):
-    print(vector)
-    v = to_homogeneous(vector)
-    print(v)
-    v = (transform @ v.T).T
-    print(v)
-    return from_homogeneous(v)
+#########################################################
 
-def to_homogeneous(vector):
-    arr = np.asarray(vector, dtype=float)
-    # Single vector
-    if arr.ndim == 1:
-        if arr.shape[0] != 2:
-            raise ValueError("Expected a 2D vector of length 2.")
-        return np.array([arr[0], arr[1], 1.0])
-    # Multiple vectors
-    elif arr.ndim == 2:
-        if arr.shape[1] != 2:
-            raise ValueError("Expected an array of shape (N, 2).")
-        ones = np.ones((arr.shape[0], 1), dtype=float)
-        return np.hstack([arr, ones])
-    else:
-        raise ValueError("Input must be a 1D or 2D array of 2D vectors.")
+class Transform:
 
-def from_homogeneous(hvector):
-    arr = np.asarray(hvector, dtype=float)
-    # Single vector
-    if arr.ndim == 1:
-        if arr.shape[0] != 3:
-            raise ValueError("Expected a homogeneous vector of length 3.")
-        w = arr[2]
-        if w == 0:
-            raise ValueError("Cannot convert homogeneous vector with w=0.")
-        return arr[:2] / w
-    # Multiple vectors
-    elif arr.ndim == 2:
-        if arr.shape[1] != 3:
-            raise ValueError("Expected an array of shape (N, 3).")
-        w = arr[:, 2:3]
-        if np.any(w == 0):
-            raise ValueError("Some vectors have w=0; cannot convert.")
-        return arr[:, :2] / w
-    else:
-        raise ValueError("Input must be a 1D or 2D array of homogeneous 2D vectors.")
+    def __init__(self, position=(0.0, 0.0), orientation=0.0, scaling=(1.0, 1.0)):
+        self.position = np.asarray(position, dtype=float).reshape(2)
+        self.orientation = float(orientation)
+        self.scaling = np.asarray(scaling, dtype=float).reshape(2)
 
-def identity():
-    return np.eye(3, dtype=float)
+    @property
+    def matrix(self):
+        return Transform.to_matrix(self)
 
-def rotation(theta):
-    c = np.cos(theta)
-    s = np.sin(theta)
-    return np.array([[c, -s, 0.0],
-                     [s,  c, 0.0],
-                     [0.0, 0.0, 1.0]], dtype=float)
+    @property
+    def inverse(self):
+        return np.linalg.inv(self.matrix)
 
-def translation(tx, ty):
-    return np.array([[1.0, 0.0, tx],
-                     [0.0, 1.0, ty],
-                     [0.0, 0.0, 1.0]], dtype=float)
+    def clone(self):
+        return Transform(self.position.copy(), self.orientation, self.scaling.copy())
 
-def scale(sx, sy=None):
-    if sy is None:
-        sy = sx
-    return np.array([[sx, 0.0, 0.0],
-                     [0.0, sy, 0.0],
-                     [0.0, 0.0, 1.0]], dtype=float)
+    def translate(self, dx, dy):
+        self.position += np.array([dx, dy], dtype=float)
 
-def mirror(axis='x'):
-    axis = axis.lower()
-    if axis == 'x':
-        return np.array([[1.0, 0.0, 0.0],
-                         [0.0, -1.0, 0.0],
-                         [0.0, 0.0, 1.0]], dtype=float)
-    elif axis == 'y':
-        return np.array([[-1.0, 0.0, 0.0],
-                         [ 0.0, 1.0, 0.0],
-                         [ 0.0, 0.0, 1.0]], dtype=float)
-    elif axis == 'origin':
-        return np.array([[-1.0, 0.0, 0.0],
-                         [ 0.0, -1.0, 0.0],
-                         [ 0.0,  0.0, 1.0]], dtype=float)
-    else:
-        return identity()
+    def rotate(self, da):
+        self.orientation += float(da)
 
-def inverse(transform):
-    return np.linalg.inv(transform)
+    def scale(self, sx, sy=None):
+        if sy is None:
+            sy = sx
+        self.scaling *= np.array([sx, sy], dtype=float)
+
+    def apply(self, points, inverse=False):
+        pts = np.asarray(points, dtype=float)
+        p = pts.reshape(-1, 2)  # (N, 2)
+        # Extract transform components
+        tx, ty = self.position
+        rot = self.orientation
+        sx, sy = self.scaling
+        if not inverse:
+            # Scale
+            x = p[:, 0] * sx
+            y = p[:, 1] * sy
+            # Rotate
+            c = np.cos(rot)
+            s = np.sin(rot)
+            out_x = c * x - s * y
+            out_y = s * x + c * y
+            # Translate
+            out_x += tx
+            out_y += ty
+        else:
+            # Un-translate
+            x = p[:, 0] - tx
+            y = p[:, 1] - ty
+            # Un-rotate
+            c = np.cos(rot)
+            s = np.sin(rot)
+            out_x = c * x + s * y
+            out_y = -s * x + c * y
+            # Un-scale
+            out_x /= sx
+            out_y /= sy
+        out = np.column_stack((out_x, out_y))
+        if pts.ndim == 1:
+            return out[0]
+        return out.reshape(pts.shape)
+
+    def combine(self, other):
+        M = self.matrix @ other.matrix
+        return Transform.from_matrix(M)
+
+    @classmethod
+    def identity(cls):
+        return cls((0.0, 0.0), 0.0, (1.0, 1.0))
+
+    @classmethod
+    def translation(cls, x, y):
+        return cls((x, y), 0.0, (1.0, 1.0))
+
+    @classmethod
+    def rotation(cls, angle):
+        return cls((0.0, 0.0), angle, (1.0, 1.0))
+
+    @classmethod
+    def scale(cls, sx, sy=None):
+        if sy is None:
+            sy = sx
+        return cls((0.0, 0.0), 0.0, (sx, sy))
+
+    @classmethod
+    def from_matrix(cls, M):
+        M = np.asarray(M, dtype=float)
+        assert M.shape == (3, 3), "Matrix must be 3x3"
+        # Translation
+        tx, ty = M[0, 2], M[1, 2]
+        # Upper-left 2x2 contains rotation * scale
+        a, b = M[0, 0], M[0, 1]
+        c, d = M[1, 0], M[1, 1]
+        # Scale is length of the column vectors
+        sx = np.sqrt(a * a + c * c)
+        sy = np.sqrt(b * b + d * d)
+        # Rotation is angle of first column
+        rot = np.arctan2(c, a)
+        return cls((tx, ty), rot, (sx, sy))
+
+    @classmethod
+    def to_matrix(cls, tf):
+        tx, ty = tf.position
+        c = np.cos(tf.orientation)
+        s = np.sin(tf.orientation)
+        sx, sy = tf.scaling
+        return np.array(
+            [[c * sx, -s * sy,  tx],
+             [s * sx,  c * sy,  ty], 
+             [   0.0,     0.0, 1.0]], dtype=float
+        )

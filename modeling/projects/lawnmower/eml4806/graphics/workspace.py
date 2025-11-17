@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-class Workspace:
+class Area:
     def __init__(self, xmin, xmax, ymin, ymax):
         plt.ion()
         self.figure, self.axis = plt.subplots(figsize=(12, 12))
@@ -11,9 +11,9 @@ class Workspace:
         self.axis.grid(True)
 
     def update(self):
-        plt.pause(0.00001)
+        self.figure.canvas.draw_idle()
+        self.figure.canvas.flush_events()
 
     def __del__(self):
         plt.ioff()
         plt.show()
-    
