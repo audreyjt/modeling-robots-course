@@ -4,11 +4,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import eml4806.geometry.angle as angle
-import eml4806.graphics.workspace as workspace
 import eml4806.sensor.keyboard as keyboard
 import eml4806.robot.skidsteer as skidsteer
-import eml4806.graphics.shape as shape
-import eml4806.geometry.transform as transform
+
+from eml4806.graphics.workspace import Workspace
+from eml4806.geometry.transform import Transform
+from eml4806.graphics.style import Color, Stroke, Fill, Style
+from eml4806.graphics.shape import Group, Rectangle, Circle
 
 def main():
 
@@ -18,12 +20,10 @@ def main():
     ymin = -1.0
     ymax = 10.0
     
-    yard = workspace.Area(xmin, xmax, ymin, ymax)
-    ax = yard.axis
-
-    #c1 = shape.Circle(ax, -1, 0, 0.5, color="blue", opacity=0.5)
-    r1 = shape.Rectangle(ax, 1.2, 0.5)
-    #c2 = shape.Circle(ax, 1, 0, 0.5, color="green", opacity=0.5)
+    workspace = Workspace(xmin, xmax, ymin, ymax)
+    c1 = Circle(workspace, 3, 4, 0.5)
+    r1 = Rectangle(workspace, 2, 1, 1.2, 0.5)
+    c2 = Circle(workspace, 3, 3, 2)
     #g = shape.Group([c1, c2])
 
     angle = 0.0
@@ -37,7 +37,7 @@ def main():
             break
         elif key == 'r':
             angle += 0.1
-            r1.transform = transform.Transform(orientation=angle)
+            r1.rotate(angle)
             print(angle)
         #elif key == 'm':
         #    c1.shift(0,d)
@@ -46,7 +46,7 @@ def main():
         #elif key == 'g':
         #    g.move(4, 4)
            
-        yard.update()
+        workspace.update()
     
     print("Bye!")
 

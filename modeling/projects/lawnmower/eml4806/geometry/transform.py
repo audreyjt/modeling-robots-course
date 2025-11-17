@@ -73,7 +73,7 @@ class Transform:
 
     @classmethod
     def identity(cls):
-        return cls((0.0, 0.0), 0.0, (1.0, 1.0))
+        return cls()
 
     @classmethod
     def translation(cls, x, y):

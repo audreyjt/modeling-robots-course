@@ -27,3 +27,18 @@ def perpendicular(v, clockwise=False, normalize=False):
         return vector(v[1], -v[0])
     else:
         vector(-v[1], v[0])
+
+def combine(x, y):
+    if np.isscalar(x) and np.isscalar(y):
+        return np.array([x, y], dtype=float)
+    return np.column_stack((np.asarray(x), np.asarray(y)))
+
+def split(v):
+    v = np.asarray(v)
+    if v.ndim == 1:
+        if v.size != 2:
+            raise ValueError("1D input must have exactly 2 elements for x and y.")
+        return float(v[0]), float(v[1])
+    if v.ndim == 2 and v.shape[1] == 2:
+        return v[:, 0], v[:, 1]
+    raise ValueError("Input must be shape (2,) or (N, 2).")

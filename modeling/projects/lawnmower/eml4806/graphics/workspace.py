@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-class Area:
+class Workspace:
     def __init__(self, xmin, xmax, ymin, ymax):
         plt.ion()
         self.figure, self.axis = plt.subplots(figsize=(12, 12))
