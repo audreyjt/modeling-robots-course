@@ -3,10 +3,13 @@ import numpy as np
 from abc import ABC, abstractmethod
 import matplotlib.pyplot as plt
 
+import eml4806.geometry.vector as vector
+
 from eml4806.graphics.workspace import Workspace
-from eml4806.geometry.vector import vector, combine, split
 from eml4806.graphics.style import Color, Stroke, Fill, Style
 from eml4806.geometry.transform import Transform
+
+
 
 ###############################################################
 
@@ -130,7 +133,7 @@ class Plot(Shape):
     def _updateStyle(self):
         s = self._style
         if s.stroke is not None:
-            self.artist.set_color(s.stroke.color)
+            self.artist.set_color(s.stroke.color.color)
             self.artist.set_linewidth(s.stroke.width)
         self.artist.set_alpha(s.opacity)
 
@@ -170,9 +173,7 @@ class Rectangle(Fill):
     ):
         self.w = width
         self.h = height
-        super().__init__(
-            workspace, style, Transform(position=(x, y), orientation=angle)
-        )
+        super().__init__(workspace, style, Transform(position=(x, y), orientation=angle))
 
     def _shape(self):
         w = 0.5 * self.w
@@ -200,4 +201,55 @@ class Circle(Fill):
         a = np.linspace(0.0, 2 * np.pi, 72, endpoint=False)
         x = self.r * np.cos(a)
         y = self.r * np.sin(a)
-        return combine(x, y)
+        return vector.combine(x, y)
+
+
+###############################################################
+
+class Polygon(Fill):
+
+    def __init__(self, workspace, edges, style=Style.defaultBrush()):
+        self._points = vector.ensure(edges)
+        super().__init__(workspace, style)
+
+    def points(self):
+        return self._points.copy()
+    
+    def setPoints(self, points):
+        self._parent = vector.ensure(points)
+    
+    def append(self, edges):
+        self._points = np.vstack([self._points, edges.vector.ensure()])
+
+    def _shape(self):
+        return self._points
+
+###############################################################
+
+class Polyline(Plot):
+
+    def __init__(self, workspace, edges=[], style=Style.defaultPen()):
+        self._points = vector.ensure(edges)
+        super().__init__(workspace, style, Transform())
+
+    def points(self):
+        return self._points.copy()
+    
+    def setPoints(self, points):
+        self._points = vector.ensure(points)
+        self._updateShape(self._points)
+    
+    def append(self, edges):
+        self._points = vector.append(self._points, edges)
+        self._updateShape(self._points)
+
+    def last(self):
+        return self._points[-1,:]
+
+    def clear(self, edges):
+        self._points = vector.ensure([])
+
+    def _shape(self):
+        return self._points
+
+###############################################################

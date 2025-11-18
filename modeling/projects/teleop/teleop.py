@@ -2,7 +2,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-import modeling.projects.lawnmower.eml4806.robot.sensor.keyboard as inp
+import eml4806.input as inp
 
 def wrap_angle(theta):
     return np.mod(theta, 2*np.pi)

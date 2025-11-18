@@ -25,6 +25,7 @@ class Blade:
     on: bool = False
     height: float = 0.0 # m
 
+"""
 class Robot:
     def __init__(self, workspace, chassis, wheels, motors, blade):
         self.chassis = chassis
@@ -43,3 +44,4 @@ class Robot:
         pass
         #for shape in self.shapes:
         #    shape.update()
+"""

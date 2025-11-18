@@ -62,12 +62,12 @@ class Style:
         )
 
     @classmethod
-    def pen(cls, color):
-        return cls(stroke=Stroke(color))
+    def pen(cls, color, opacity = 1.0):
+        return cls(stroke=Stroke(color), opacity=opacity)
     
     @classmethod
-    def brush(cls, color):
-        return cls(stroke=Stroke(color), fill=Fill(color))
+    def brush(cls, color, opacity = 1.0):
+        return cls(stroke=Stroke(color), fill=Fill(color), opacity=opacity)
 
     @classmethod
     def defaultPen(cls):
