@@ -24,7 +24,7 @@ def main():
     c1 = Circle(workspace, 3, 4, 0.5)
     r1 = Rectangle(workspace, 2, 1, 1.2, 0.5)
     c2 = Circle(workspace, 3, 3, 2)
-    #g = shape.Group([c1, c2])
+    g = Group([c1, c2, r1])
 
     angle = 0.0
     d = 0.1
@@ -38,13 +38,12 @@ def main():
         elif key == 'r':
             angle += 0.1
             r1.rotate(angle)
-            print(angle)
-        #elif key == 'm':
-        #    c1.shift(0,d)
-        #    r1.shift(0,d)
-        #    c2.shift(0,d)
-        #elif key == 'g':
-        #    g.move(4, 4)
+        elif key == 'm':
+            c1.move(0,d,relative=True)
+            r1.move(0,d,relative=True)
+            c2.move(d,0,relative=True)
+        elif key == 'g':
+            g.rotate(0.1, relative=True)
            
         workspace.update()
     

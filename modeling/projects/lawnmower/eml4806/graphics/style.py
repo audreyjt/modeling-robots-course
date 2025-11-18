@@ -6,7 +6,7 @@ from typing import List, Optional
 
 class Color:
 
-    def __init__(self, r: float = 0.0, g: float = 0.0, b: float = 0.0):
+    def __init__(self, r: float = 0.0, g: float = 0.0, b: float = 1.0):
         self.color = (r, g, b)
     
     def clone(self):
@@ -71,10 +71,9 @@ class Style:
 
     @classmethod
     def defaultPen(cls):
-        return cls.pen(Color(1.0, 1.0, 1.0))
+        return cls.pen(Color(0.0, 1.0, 0.0))
         
     @classmethod
     def defaultBrush(cls):
-        color = Color(1.0, 1.0, 1.0)
-        return cls.brush(Color(1.0,1.0,1.0))
+        return cls.brush(Color(1.0,0.0,1.0))
     

@@ -67,8 +67,9 @@ class Transform:
             return out[0]
         return out.reshape(pts.shape)
 
-    def combine(self, other):
-        M = self.matrix @ other.matrix
+    @classmethod
+    def compound(cls, M1, M2):
+        M = M1.matrix @ M2.matrix
         return Transform.from_matrix(M)
 
     @classmethod
