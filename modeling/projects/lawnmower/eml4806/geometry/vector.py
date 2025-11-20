@@ -1,7 +1,12 @@
 import numpy as np
 
-def make(x, y):
-    return np.array([0.0, 0.0], dtype=float)
+def vector(x, y):
+    """
+    Create a vector or array of vectors from scalars or arrays.
+    Scalars are broadcast to match array shapes.
+    """
+    X, Y = np.broadcast_arrays(np.asarray(x, float), np.asarray(y, float))
+    return np.column_stack((X, Y))
 
 def null():
     return np.array([0.0, 0.0], dtype=float)
@@ -26,14 +31,9 @@ def unit(v1):
 def perpendicular(v, clockwise=False, normalize=False):
     u = np.asarray(v)
     if clockwise:
-        return make(v[1], -v[0])
+        return vector(v[1], -v[0])
     else:
-        make(-v[1], v[0])
-
-def combine(x, y):
-    if np.isscalar(x) and np.isscalar(y):
-        return np.array([x, y], dtype=float)
-    return np.column_stack((np.asarray(x), np.asarray(y)))
+        vector(-v[1], v[0])
 
 def split(v):
     v = np.asarray(v)
@@ -68,7 +68,6 @@ def ensure(points):
         if arr.size % 2 != 0:
             raise ValueError("Flat sequence must have even length to form vectors.")
         return arr.reshape(-1, 2)
-
     # List of arbitrary sequences → pull first two components
     try:
         x = np.asarray([p[0] for p in points])
@@ -84,5 +83,4 @@ def append(points, new_points):
     """
     p = ensure(points)
     q = ensure(new_points)
-
     return np.vstack([p, q])
