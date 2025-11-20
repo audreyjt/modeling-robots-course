@@ -8,15 +8,32 @@ from eml4806.geometry.angle import normalize
 @dataclass
 class SkidDriveOdometer(ABC):
     track_width             : float = 0.0 # Effective_track_width # Distance between the left and right wheel contact lines
-    maximum_linear_velocity : float = 0.0 # Impose safety speed limites in the internal controller
-    maximum_angular_velocity: float = 0.0 # Impose safety rotation limites in the internal controller
+    maximum_linear_velocity : float = None # Impose safety speed limites in the internal controller
+    maximum_angular_velocity: float = None # Impose safety rotation limites in the internal controller
     
     def initilize(self, x, y, theta):
-        self.x = x
-        self.y = y
-        self.theta = theta
+        self._x = x
+        self._y = y
+        self._theta = theta
+        self._vl = 0.0
+        self._vr = 0.0
+
+    def position(self):
+        return self._x, self._y
+    
+    def orientation(self):
+        return self._theta
+    
+    def pose(self):
+        return self._x, self._y, self._theta
+    
+    def velocities(self):
+        return self._vr, self._vl
 
     def integrate(self, vl, vr, dt, tol=1e-3):
+        # Remember
+        self._vl = vl
+        self._vr = vr
         # Forward and angular velocities
         v = 0.5 * (vr + vl)  # forward
         w = (vr - vl) / self.track_width  # yaw rate
@@ -25,7 +42,6 @@ class SkidDriveOdometer(ABC):
         w = clip(w, -self.maximum_angular_velocity, self.maximum_angular_velocity)
         # Update pose
         self._integrate(v, w, dt, tol)
-        return self.x, self.y, self.theta
 
     @abstractmethod
     def _integrate(self, v, w, dt, tol): ...
@@ -38,9 +54,9 @@ class FirstOrderSkidDriveOdometer(SkidDriveOdometer):
     def _integrate(self, v, w, dt, tol):
         ds = v*dt # Forward linear displacement
         da = w*dt # Change in heading (yaw)
-        self.x += ds*cos(self.theta)
-        self.y += ds*sin(self.theta)
-        self.theta += da
+        self._x += ds*cos(self._theta)
+        self._y += ds*sin(self._theta)
+        self._theta += da
 
 ##############################################################################################
 
@@ -50,10 +66,10 @@ class SecondOrderSkidDriveOdometer(SkidDriveOdometer):
     def _integrate(self, v, w, dt, tol):
         ds = v*dt # Forward linear displacement
         da = w*dt # Change in heading (yaw)
-        a = self.theta + 0.5*da # Midpoint heading
-        self.x += ds * cos(a)
-        self.y += ds * sin(a)
-        self.theta += da
+        a = self._theta + 0.5*da # Midpoint heading
+        self._x += ds * cos(a)
+        self._y += ds * sin(a)
+        self._theta += da
         
 ##############################################################################################
 
@@ -65,14 +81,14 @@ class AnalyticalSkidDriveOdometer(SkidDriveOdometer):
         da = w*dt # Change in heading (yaw)
         # Straigth line (small-angle) case 
         if abs(da) < tol:
-            a = self.theta + 0.5*da # Midpoint heading
-            self.x += ds * cos(a)
-            self.y += ds * sin(a)
-            self.theta += da
+            a = self._theta + 0.5*da # Midpoint heading
+            self._x += ds * cos(a)
+            self._y += ds * sin(a)
+            self._theta += da
         else:
             # General analytic case
             r = ds/da  # instantaneous turning radius
-            a = self.theta + da # Heading
-            self.x += r * (sin(a) - sin(self.theta))
-            self.y -= r * (cos(a) - cos(self.theta))
-            self.theta += da
+            a = self._theta + da # Heading
+            self._x += r * (sin(a) - sin(self._theta))
+            self._y -= r * (cos(a) - cos(self._theta))
+            self._theta += da

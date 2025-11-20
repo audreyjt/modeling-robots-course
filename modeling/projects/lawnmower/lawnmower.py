@@ -11,7 +11,7 @@ import eml4806.sensor.keyboard as keyboard
 
 from eml4806.geometry.vector import vector
 from eml4806.graphics.workspace import Workspace
-from eml4806.graphics.shape import Rectangle, Circle, Polyline, Group, Vector
+from eml4806.graphics.shape import Rectangle, Circle, Polyline, Group, Arrow
 from eml4806.graphics.style import Color, Style
 from eml4806.geometry.transform import Transform
 from eml4806.robot.odometry import AnalyticalSkidDriveOdometer
@@ -50,7 +50,7 @@ def main():
 
     motors = Motor()
     motors.maximum_angular_velocity = 5.45  # rad/s (~52 rpm maximum)
-
+    
     blade = Blade()
     blade.diameter = 0.9 * chassis.width  # m
     blade.height = 0.05  # m (~2 inches)
@@ -62,14 +62,17 @@ def main():
 
     # Simulated robot
     robot = Robot(workspace, x0, y0, theta0, chassis, wheels, motors, blade, odometer)
+    robot.setDebug(False)
 
     # Direct wheel-speed control modeling a microcontroller-style PWM motor driver
-    wl = 0.0  # Left wheel speed  (rad/s)
-    wr = 0.0  # Right wheel speed (rad/s)
+    # v = omega*r_wheel
+    vl = 0.0  # Left track linear velocity (m/s)
+    vr = 0.0  # Left track linear velocity (m/s)
+    vmax = motors.maximum_angular_velocity * (0.5* wheels.diameter)
 
     # Controller sensitivity
-    dv = 0.20  # rad/s, Linear velocity increase
-    dw = 0.15  # rad/s, Angular velocity increse 
+    dv = 0.07  # m/s, Linear velocity increase
+    dw = 0.04  # m/s, Angular velocity increse 
 
     # Simulation
     t = 0.0 # s
@@ -77,31 +80,36 @@ def main():
 
     while True:
 
-        # Input
+        # User controller
         key = keyboard.key()
 
         # Commands inside the microntroller
         if key == "q":
             break
         elif key == "up":
-            wl += dv
-            wr += dv
+            vl += dv
+            vr += dv
         elif key == "down":
-            wl -= dv
-            wr -= dv
+            vl -= dv
+            vr -= dv
         elif key == "left":
-            wl -= dw
-            wr += dw
+            vl -= dw
+            vr += dw
         elif key == "right":
-            wl += dw
-            wr -= dw
+            vl += dw
+            vr -= dw
         elif key == " ":
-            wl = 0.0
-            wr = 0.0
-
+            vl = 0.0
+            vr = 0.0
+        elif key == "d":
+            robot.setDebug( not robot.debug() )
+          
         # Motors physical limits
-        wl = np.clip(wl, -motors.maximum_angular_velocity, motors.maximum_angular_velocity)
-        wr = np.clip(wr, -motors.maximum_angular_velocity, motors.maximum_angular_velocity)
+        vl = np.clip(vl, -vmax, vmax)
+        vr = np.clip(vr, -vmax, vmax)
+
+        ###################################################################################
+        # Controller
 
         # Sensor
         x, y = robot.gps()
@@ -110,14 +118,17 @@ def main():
         # ...
 
         # Actuator
-        robot.move(t, wl, wr)  # Actuator
-        
+        robot.move(vl, vr, dt)  # Actuator
+
+        # Advance
+        t += dt
+    
+        ###################################################################################
+
         # Update scene
         workspace.update()
 
-        # Advance time
-        t = t + dt
-
+    
     print("Bye!")
 
 if __name__ == "__main__":

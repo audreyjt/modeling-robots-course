@@ -1,4 +1,4 @@
-version = "0.0.3"
+version = "0.0.5"
 
 print('EML 4806 Modeling Of Robots')
 print('Florida International University')

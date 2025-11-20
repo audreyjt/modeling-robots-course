@@ -2,7 +2,7 @@ import math
 import numpy as np
 from abc import ABC, abstractmethod
 import matplotlib.pyplot as plt
-from matplotlib.patches import FancyArrowPatch as Arrow
+from matplotlib.patches import FancyArrowPatch as ArrowPatch
 
 from eml4806.geometry.vector import vector, ensure, append
 from eml4806.graphics.workspace import Workspace
@@ -84,6 +84,12 @@ class Shape(Drawable):
         self._make()
         self._updateTransform()
         self._updateStyle()
+
+    def hide(self):
+        self._artist.set_visible(False)
+
+    def show(self):
+        self._artist.set_visible(True)        
 
     def style(self):
         return self._style.clone()
@@ -252,14 +258,14 @@ class Polyline(Plot):
 
 ###############################################################
 
-class Vector(Shape):
+class Arrow(Shape):
 
-    def __init__(self, workspace, x, y, dx, dy, style = Style.defaultBrush(), scale = 20):
+    def __init__(self, workspace, x, y, dx, dy, style = Style.defaultBrush(), scaling = 1):
         self._x = float(x)
         self._y = float(y)
         self._dx = float(dx)
         self._dy = float(dy)
-        self._scale = float(scale)
+        self._scaling = float(scaling)
         super().__init__(workspace, style, Transform())
 
     def setPosition(self, x, y):
@@ -267,13 +273,13 @@ class Vector(Shape):
         self._y = y
         self._updateTransform()
 
-    def setVector(self, dx, dy):
+    def setSize(self, dx, dy):
         self._dx = dx
         self._dy = dy
         self._updateTransform()
 
     def _make(self):
-        self._artist = Arrow(posA=(0.0, 0.0), posB=(0.0, 0.0), arrowstyle='->', mutation_scale=10.0)
+        self._artist = ArrowPatch(posA=(0.0, 0.0), posB=(0.0, 0.0), arrowstyle='->', mutation_scale=self._scaling)
         self._ax.add_patch(self._artist)
  
     def _updateShape(self, o):
@@ -291,6 +297,6 @@ class Vector(Shape):
     def _shape(self):
         return np.array([
                 [self._x, self._y],
-                [self._x + self._scale*self._dx, self._y + self._scale*self._dy]
+                [self._x + self._scaling*self._dx, self._y + self._scaling*self._dy]
             ]
         )
