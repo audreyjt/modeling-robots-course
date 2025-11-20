@@ -2,14 +2,12 @@ import math
 import numpy as np
 from abc import ABC, abstractmethod
 import matplotlib.pyplot as plt
+from matplotlib.patches import FancyArrowPatch as ArrowPatch
 
-import eml4806.geometry.vector as vector
-
+from eml4806.geometry.vector import vector, ensure, append
 from eml4806.graphics.workspace import Workspace
 from eml4806.graphics.style import Color, Stroke, Fill, Style
 from eml4806.geometry.transform import Transform
-
-
 
 ###############################################################
 
@@ -87,6 +85,12 @@ class Shape(Drawable):
         self._updateTransform()
         self._updateStyle()
 
+    def hide(self):
+        self._artist.set_visible(False)
+
+    def show(self):
+        self._artist.set_visible(True)        
+
     def style(self):
         return self._style.clone()
 
@@ -125,17 +129,17 @@ class Plot(Shape):
 
     def _make(self):
         # use the provided axes instead of the global pyplot
-        self.artist = self._ax.plot([], [])[0]
+        self._artist = self._ax.plot([], [])[0]
 
     def _updateShape(self, o):
-        self.artist.set_data(o[:, 0], o[:, 1])
+        self._artist.set_data(o[:, 0], o[:, 1])
 
     def _updateStyle(self):
         s = self._style
         if s.stroke is not None:
-            self.artist.set_color(s.stroke.color.color)
-            self.artist.set_linewidth(s.stroke.width)
-        self.artist.set_alpha(s.opacity)
+            self._artist.set_color(s.stroke.color.color)
+            self._artist.set_linewidth(s.stroke.width)
+        self._artist.set_alpha(s.opacity)
 
 
 ###############################################################
@@ -147,20 +151,20 @@ class Fill(Shape):
         super().__init__(workspace, style, transform)
 
     def _make(self):
-        self.artist = self._ax.fill([], [])[0]
+        self._artist = self._ax.fill([], [])[0]
 
     def _updateShape(self, o):
         # o is expected to be an (N, 2) array of vertices
-        self.artist.set_xy(o)
+        self._artist.set_xy(o)
 
     def _updateStyle(self):
         s = self._style
         if s.fill is not None:
-            self.artist.set_facecolor(s.fill.color.color)
+            self._artist.set_facecolor(s.fill.color.color)
         if s.stroke is not None:
-            self.artist.set_edgecolor(s.stroke.color.color)
-            self.artist.set_linewidth(s.stroke.width)
-        self.artist.set_alpha(s.opacity)
+            self._artist.set_edgecolor(s.stroke.color.color)
+            self._artist.set_linewidth(s.stroke.width)
+        self._artist.set_alpha(s.opacity)
 
 
 ###############################################################
@@ -201,7 +205,7 @@ class Circle(Fill):
         a = np.linspace(0.0, 2 * np.pi, 72, endpoint=False)
         x = self.r * np.cos(a)
         y = self.r * np.sin(a)
-        return vector.combine(x, y)
+        return vector(x, y)
 
 
 ###############################################################
@@ -209,17 +213,17 @@ class Circle(Fill):
 class Polygon(Fill):
 
     def __init__(self, workspace, edges, style=Style.defaultBrush()):
-        self._points = vector.ensure(edges)
+        self._points = ensure(edges)
         super().__init__(workspace, style)
 
     def points(self):
         return self._points.copy()
     
     def setPoints(self, points):
-        self._parent = vector.ensure(points)
+        self._parent = ensure(points)
     
     def append(self, edges):
-        self._points = np.vstack([self._points, edges.vector.ensure()])
+        self._points = np.vstack([self._points, edges.ensure()])
 
     def _shape(self):
         return self._points
@@ -229,27 +233,70 @@ class Polygon(Fill):
 class Polyline(Plot):
 
     def __init__(self, workspace, edges=[], style=Style.defaultPen()):
-        self._points = vector.ensure(edges)
+        self._points = ensure(edges)
         super().__init__(workspace, style, Transform())
 
     def points(self):
         return self._points.copy()
     
     def setPoints(self, points):
-        self._points = vector.ensure(points)
+        self._points = ensure(points)
         self._updateShape(self._points)
     
     def append(self, edges):
-        self._points = vector.append(self._points, edges)
+        self._points = append(self._points, edges)
         self._updateShape(self._points)
 
     def last(self):
         return self._points[-1,:]
 
     def clear(self, edges):
-        self._points = vector.ensure([])
+        self._points = ensure([])
 
     def _shape(self):
         return self._points
 
 ###############################################################
+
+class Arrow(Shape):
+
+    def __init__(self, workspace, x, y, dx, dy, style = Style.defaultBrush(), scaling = 1):
+        self._x = float(x)
+        self._y = float(y)
+        self._dx = float(dx)
+        self._dy = float(dy)
+        self._scaling = float(scaling)
+        super().__init__(workspace, style, Transform())
+
+    def setPosition(self, x, y):
+        self._x = x
+        self._y = y
+        self._updateTransform()
+
+    def setSize(self, dx, dy):
+        self._dx = dx
+        self._dy = dy
+        self._updateTransform()
+
+    def _make(self):
+        self._artist = ArrowPatch(posA=(0.0, 0.0), posB=(0.0, 0.0), arrowstyle='->', mutation_scale=self._scaling)
+        self._ax.add_patch(self._artist)
+ 
+    def _updateShape(self, o):
+        self._artist.set_positions((o[0,0], o[0,1]), (o[1,0], o[1,1]))
+
+    def _updateStyle(self):
+        s = self._style
+        if s.fill is not None:
+            self._artist.set_facecolor(s.fill.color.color)
+        if s.stroke is not None:
+            self._artist.set_edgecolor(s.stroke.color.color)
+            self._artist.set_linewidth(s.stroke.width)
+        self._artist.set_alpha(s.opacity)
+
+    def _shape(self):
+        return np.array([
+                [self._x, self._y],
+                [self._x + self._scaling*self._dx, self._y + self._scaling*self._dy]
+            ]
+        )
