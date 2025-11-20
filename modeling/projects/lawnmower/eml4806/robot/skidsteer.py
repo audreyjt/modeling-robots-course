@@ -83,7 +83,7 @@ class Robot:
         # Assembly
         self.body = Group([self.body, self.wheel1, self.wheel2, self.wheel3, self.wheel4, self.tool, self.vector_vl, self.vector_vr])
         # Path
-        self.path = Polyline(workspace, style=Style.pen(Color(0.0,0.0,1.0)))
+        self.path = Polyline(workspace, style=Style.pen(Color(1.0,0.0,1.0)))
         self.path.append(vector(self.x, self.y))
         self._update()
 
