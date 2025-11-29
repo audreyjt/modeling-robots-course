@@ -17,6 +17,60 @@ from eml4806.geometry.transform import Transform
 from eml4806.robot.odometry import AnalyticalSkidDriveOdometer
 from eml4806.robot.skidsteer import Chassis, Wheel, Motor, Blade, Robot
 
+
+def plot_path(points, ptype="line"):
+    plt.plot(points[0], points[1], c='k')
+    return None
+
+
+def find_closest_point_on_segment(x1, y1, x2, y2, px, py):
+    """
+    Finds the point on the line segment P1(x1, y1) to P2(x2, y2)
+    that is closest to the given point P(px, py).
+
+    Args:
+        x1, y1 (float): Coordinates of the segment's start point (P1).
+        x2, y2 (float): Coordinates of the segment's end point (P2).
+        px, py (float): Coordinates of the reference point (P).
+
+    Returns:
+        tuple: (closest_x, closest_y) coordinates on the segment.
+    """
+    # 1. Define the vectors and points
+    P1 = np.array([x1, y1])
+    P2 = np.array([x2, y2])
+    P = np.array([px, py])
+
+    # Vector P1 to P2 (v)
+    v = P2 - P1
+
+    # Vector P1 to P (w)
+    w = P - P1
+
+    # Square of the segment length (v dot v)
+    v_sq = np.dot(v, v)
+
+    # Handle the edge case where the two points are the same
+    if v_sq == 0:
+        return x1, y1
+
+    # 2. Calculate projection parameter 't'
+    # t = (w dot v) / (v dot v)
+    # This determines where the projection of P falls on the line defined by P1 and P2.
+    t = np.dot(w, v) / v_sq
+
+    # 3. Clamp 't' to the range [0, 1] for the line *segment*
+    # t_clamped = 0: Closest point is P1
+    # t_clamped = 1: Closest point is P2
+    # 0 < t_clamped < 1: Closest point is between P1 and P2
+    t_clamped = np.clip(t, 0.0, 1.0)
+
+    # 4. Find the closest point (P_closest)
+    # P_closest = P1 + t_clamped * v
+    P_closest = P1 + t_clamped * v
+
+    return P_closest[0], P_closest[1]
+
 def main():
 
     # Land
@@ -76,7 +130,17 @@ def main():
 
     # Simulation
     t = 0.0 # s
-    dt = 0.02 # s (~50 Hz)
+    dt = 0.1 # s (~50 Hz)
+
+    line_pts = [[1, 8], [2, 9]]
+    plot_path(line_pts)
+
+    closest_p = find_closest_point_on_segment(x1=line_pts[0][0], x2=line_pts[0][1], y1=line_pts[1][0],
+                                              y2=line_pts[1][1], px=x0, py=y0)
+    plotted_closest = plt.scatter(closest_p[0], closest_p[1])
+    robot.setDebug(True)
+    last_error = [0,0]
+    stored_errors = []
 
     while True:
 
@@ -116,13 +180,30 @@ def main():
 
         # Controller
         # ...
+        closest_p = find_closest_point_on_segment(x1=line_pts[0][0], x2=line_pts[0][1], y1=line_pts[1][0],
+                                                  y2=line_pts[1][1], px=x, py=y)
+        plotted_closest.set_offsets(np.c_[closest_p[0], closest_p[1]])
+
+        cur_error = closest_p-np.array([x,y])
+        norm_error = np.linalg.norm(cur_error)
+        stored_errors.append(norm_error)
+        plt.title(f"Error = {norm_error}")
+
+        v = 0.2
+        k_p = 0.0225
+        k_d = 0.09
+
+        dt_diff = (cur_error - last_error)/dt
+        vl = v + k_p*cur_error[0] + k_d*dt_diff[0]
+        vr = v + k_p*cur_error[1] + k_d*dt_diff[1]
+
+        last_error = cur_error
 
         # Actuator
         robot.move(vl, vr, dt)  # Actuator
-
         # Advance
         t += dt
-    
+
         ###################################################################################
 
         # Update scene
@@ -130,6 +211,12 @@ def main():
 
     
     print("Bye!")
+    return k_p, k_d, stored_errors
 
 if __name__ == "__main__":
-    main()
+    kp, kd, se = main()
+    plt.clf()
+    plt.plot(se)
+    plt.title(f"Model Performance: Error vs Time | k_p={kp}, k_d={kd}")
+    plt.grid(True)
+    plt.show()
